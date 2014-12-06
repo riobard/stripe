@@ -7,21 +7,23 @@ import (
 	"os"
 )
 
+// the version string is injected durign the build process
+var version string
+
 var (
-	Version string
-	stripe  *Stripe
-	addr    string
-	dir     string
+	stripe *Stripe
+	addr   string
+	dir    string
 )
 
 func main() {
 	flag.StringVar(&addr, "addr", ":8080", "server address")
 	flag.StringVar(&dir, "dir", "/usr/local/etc/stripe", "directory")
-	version := flag.Bool("version", false, "print version")
+	printVersion := flag.Bool("version", false, "print version")
 	flag.Parse()
 
-	if *version {
-		println(Version)
+	if *printVersion {
+		println(version)
 		return
 	}
 
@@ -51,9 +53,11 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		if _, err := stripe.Subscribe(email, plan, tok); err != nil {
 			log.Printf("[Stripe] failed to subscribe (email=%q plan=%q token=%q): %s", email, plan, tok, err)
 			http.ServeFile(w, r, dir+"/failure.html")
-		} else {
-			http.ServeFile(w, r, dir+"/success.html")
+			return
 		}
+
+		http.ServeFile(w, r, dir+"/success.html")
+
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
